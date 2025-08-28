@@ -2,22 +2,32 @@ import tkinter as tk
 from tkinter import messagebox, filedialog, ttk
 import json
 import csv
+import sys
 import os
 from datetime import datetime
 from cuentas import generar_datos_ficticios, dominios_validos
 from scrapping import votar_cupon
 
-# --- Variables globales ---
 cuentas_generadas = []
 vars_seleccion = []
 locales = []
 
-# --- Leer CSV de locales ---
-with open("locales.csv", encoding="utf-8") as f:
+# Obtener la ruta del directorio del script o exe
+if getattr(sys, 'frozen', False):
+    # Cuando se ejecuta como exe
+    base_path = sys._MEIPASS
+else:
+    # Cuando se ejecuta como script
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+# Ruta completa al CSV
+csv_path = os.path.join(base_path, "locales.csv")
+
+# Leer CSV
+with open(csv_path, encoding="utf-8") as f:
     reader = csv.DictReader(f, delimiter=";")
     locales = [(row["id"], row["local"]) for row in reader]
 
-# --- Funciones ---
 def generar_cuentas():
     global cuentas_generadas, vars_seleccion
     for widget in frame_lista.winfo_children():
@@ -59,7 +69,6 @@ def generar_cuentas():
         tk.Label(frame_lista, text=pwd).grid(row=i, column=2, sticky="w", padx=10, pady=2)
 
 def guardar_y_votar():
-    # --- Obtener cuentas seleccionadas ---
     seleccionadas = [
         {"correo": c, "password": p}
         for (c, p), var in zip(cuentas_generadas, vars_seleccion)
@@ -70,14 +79,12 @@ def guardar_y_votar():
         return
 
     try:
-        # --- Información del local y parámetros ---
         local_text = combo_locales.get()
         local_id, local_nombre = local_text.split(" - ", 1)
         local_id = int(local_id)
         estrellas = int(entry_estrellas.get())
         codigo = entry_codigo.get().strip()
 
-        # --- Archivo JSON ---
         file_path = os.path.join(os.getcwd(), "cuentas.json")
         if os.path.exists(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
@@ -91,21 +98,18 @@ def guardar_y_votar():
         if not isinstance(data, list):
             data = []
 
-        # --- Obtener todos los correos existentes para este local_id ---
         correos_existentes = set()
         for entrada in data:
             if entrada.get("local_id") == local_id:
                 for cuenta in entrada.get("cuentas", []):
                     correos_existentes.add(cuenta["correo"])
 
-        # --- Filtrar cuentas duplicadas ---
         nuevas_cuentas = [c for c in seleccionadas if c["correo"] not in correos_existentes]
 
         if not nuevas_cuentas:
             messagebox.showinfo("Aviso", "Todos los correos seleccionados ya existen para este local.")
             return
 
-        # --- Crear entrada nueva ---
         nueva_entrada = {
             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "local_id": local_id,
@@ -117,7 +121,6 @@ def guardar_y_votar():
 
         data.append(nueva_entrada)
 
-        # --- Guardar JSON ---
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
@@ -127,7 +130,6 @@ def guardar_y_votar():
         messagebox.showerror("Error", f"No se pudo guardar el archivo: {e}")
         return
 
-    # --- Votar con las cuentas guardadas ---
     for cuenta in nuevas_cuentas:
         correo = cuenta["correo"]
         pwd = cuenta["password"]
@@ -138,78 +140,81 @@ def guardar_y_votar():
 
     messagebox.showinfo("Éxito", f"Se votó con {len(nuevas_cuentas)} cuentas seleccionadas")
 
-# --- Interfaz ---
-root = tk.Tk()
-root.title("Gestor de cuentas y cupones")
-root.geometry("900x700")
+def main():
+    global root, frame_controles, frame_lista
+    root = tk.Tk()
+    root.title("Gestor de cuentas y cupones")
+    root.geometry("900x700")
 
-frame_controles = tk.Frame(root)
-frame_controles.pack(pady=10)
+    global entry_cantidad, combo_locales, entry_estrellas, entry_codigo
+    global vars_dominios, entry_extra, var_usar_punto, opcion_sufijo
 
-tk.Label(frame_controles, text="Cantidad de cuentas:").grid(row=0, column=0, padx=5)
-entry_cantidad = tk.Entry(frame_controles, width=5)
-entry_cantidad.grid(row=0, column=1, padx=5)
-entry_cantidad.insert(0, "5")
+    frame_controles = tk.Frame(root)
+    frame_controles.pack(pady=10)
 
-# --- Locales desde CSV ---
-tk.Label(frame_controles, text="Local:").grid(row=0, column=2, padx=5)
-combo_locales = ttk.Combobox(frame_controles, width=30, state="readonly")
-combo_locales["values"] = [f"{id} - {nombre}" for id, nombre in locales]
-combo_locales.grid(row=0, column=3, padx=5)
-combo_locales.current(0)  # Selecciona el primero por defecto
+    tk.Label(frame_controles, text="Cantidad de cuentas:").grid(row=0, column=0, padx=5)
+    entry_cantidad = tk.Entry(frame_controles, width=5)
+    entry_cantidad.grid(row=0, column=1, padx=5)
+    entry_cantidad.insert(0, "5")
 
-# --- Estrellas y código ---
-tk.Label(frame_controles, text="Estrellas:").grid(row=0, column=4, padx=5)
-entry_estrellas = tk.Entry(frame_controles, width=5)
-entry_estrellas.grid(row=0, column=5, padx=5)
-entry_estrellas.insert(0, "7")
+    tk.Label(frame_controles, text="Local:").grid(row=0, column=2, padx=5)
+    combo_locales = ttk.Combobox(frame_controles, width=30, state="readonly")
+    combo_locales["values"] = [f"{id} - {nombre}" for id, nombre in locales]
+    combo_locales.grid(row=0, column=3, padx=5)
+    combo_locales.current(0)
 
-tk.Label(frame_controles, text="Código:").grid(row=0, column=6, padx=5)
-entry_codigo = tk.Entry(frame_controles, width=10)
-entry_codigo.grid(row=0, column=7, padx=5)
-entry_codigo.insert(0, "the1one")
+    tk.Label(frame_controles, text="Estrellas:").grid(row=0, column=4, padx=5)
+    entry_estrellas = tk.Entry(frame_controles, width=5)
+    entry_estrellas.grid(row=0, column=5, padx=5)
+    entry_estrellas.insert(0, "7")
 
-# --- Checkboxes para excluir dominios ---
-tk.Label(frame_controles, text="Excluir dominios:").grid(row=1, column=0, padx=5, sticky="nw")
-vars_dominios = {}
-frame_checks = tk.Frame(frame_controles)
-frame_checks.grid(row=1, column=1, padx=5, sticky="w")
-for dom in dominios_validos:
-    var = tk.BooleanVar(value=False)
-    chk = tk.Checkbutton(frame_checks, text=dom, variable=var)
-    chk.pack(anchor="w")
-    vars_dominios[dom] = var
+    tk.Label(frame_controles, text="Código:").grid(row=0, column=6, padx=5)
+    entry_codigo = tk.Entry(frame_controles, width=10)
+    entry_codigo.grid(row=0, column=7, padx=5)
+    entry_codigo.insert(0, "the1one")
 
-# --- Dominio extra ---
-tk.Label(frame_controles, text="Dominio extra:").grid(row=2, column=0, padx=5, sticky="w")
-entry_extra = tk.Entry(frame_controles, width=20)
-entry_extra.grid(row=2, column=1, padx=5, sticky="w")
-entry_extra.insert(0, "umayor.cl")
+    tk.Label(frame_controles, text="Excluir dominios:").grid(row=1, column=0, padx=5, sticky="nw")
+    vars_dominios = {}
+    frame_checks = tk.Frame(frame_controles)
+    frame_checks.grid(row=1, column=1, padx=5, sticky="w")
+    for dom in dominios_validos:
+        var = tk.BooleanVar(value=False)
+        chk = tk.Checkbutton(frame_checks, text=dom, variable=var)
+        chk.pack(anchor="w")
+        vars_dominios[dom] = var
 
-# --- Opción de usar punto ---
-var_usar_punto = tk.BooleanVar(value=True)
-chk_punto = tk.Checkbutton(frame_controles, text="Usar punto entre nombre y apellido", variable=var_usar_punto)
-chk_punto.grid(row=3, column=0, columnspan=2, pady=2, sticky="w")
+    tk.Label(frame_controles, text="Dominio extra:").grid(row=2, column=0, padx=5, sticky="w")
+    entry_extra = tk.Entry(frame_controles, width=20)
+    entry_extra.grid(row=2, column=1, padx=5, sticky="w")
+    entry_extra.insert(0, "umayor.cl")
 
-# --- Radio buttons para sufijo ---
-tk.Label(frame_controles, text="Sufijo en correo:").grid(row=4, column=0, padx=5, sticky="w")
-opcion_sufijo = tk.StringVar(value="numero")
+    var_usar_punto = tk.BooleanVar(value=True)
+    chk_punto = tk.Checkbutton(frame_controles, text="Usar punto entre nombre y apellido", variable=var_usar_punto)
+    chk_punto.grid(row=3, column=0, columnspan=2, pady=2, sticky="w")
 
-frame_sufijo = tk.Frame(frame_controles)
-frame_sufijo.grid(row=4, column=1, padx=5, sticky="w")
-tk.Radiobutton(frame_sufijo, text="Ninguno", variable=opcion_sufijo, value="ninguno").pack(anchor="w")
-tk.Radiobutton(frame_sufijo, text="Número aleatorio", variable=opcion_sufijo, value="numero").pack(anchor="w")
-tk.Radiobutton(frame_sufijo, text="Año aleatorio", variable=opcion_sufijo, value="anio").pack(anchor="w")
-tk.Radiobutton(frame_sufijo, text="Número y Año", variable=opcion_sufijo, value="ambos").pack(anchor="w")
+    tk.Label(frame_controles, text="Sufijo en correo:").grid(row=4, column=0, padx=5, sticky="w")
+    opcion_sufijo = tk.StringVar(value="numero")
+    frame_sufijo = tk.Frame(frame_controles)
+    frame_sufijo.grid(row=4, column=1, padx=5, sticky="w")
+    tk.Radiobutton(frame_sufijo, text="Ninguno", variable=opcion_sufijo, value="ninguno").pack(anchor="w")
+    tk.Radiobutton(frame_sufijo, text="Número aleatorio", variable=opcion_sufijo, value="numero").pack(anchor="w")
+    tk.Radiobutton(frame_sufijo, text="Año aleatorio", variable=opcion_sufijo, value="anio").pack(anchor="w")
+    tk.Radiobutton(frame_sufijo, text="Número y Año", variable=opcion_sufijo, value="ambos").pack(anchor="w")
 
-# --- Botones ---
-btn_generar = tk.Button(frame_controles, text="Generar cuentas", command=generar_cuentas)
-btn_generar.grid(row=5, column=0, padx=10, pady=10)
+    btn_generar = tk.Button(frame_controles, text="Generar cuentas", command=generar_cuentas)
+    btn_generar.grid(row=5, column=0, padx=10, pady=10)
 
-btn_guardar_y_votar = tk.Button(frame_controles, text="Guardar y Votar", command=guardar_y_votar)
-btn_guardar_y_votar.grid(row=5, column=1, columnspan=2, padx=10, pady=10)
+    btn_guardar_y_votar = tk.Button(frame_controles, text="Guardar y Votar", command=guardar_y_votar)
+    btn_guardar_y_votar.grid(row=5, column=1, columnspan=2, padx=10, pady=10)
 
-frame_lista = tk.Frame(root)
-frame_lista.pack(pady=20, fill="both", expand=True)
+    global frame_lista
+    frame_lista = tk.Frame(root)
+    frame_lista.pack(pady=20, fill="both", expand=True)
 
-root.mainloop()
+    generar_cuentas()  # Mostrar cuentas iniciales
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
