@@ -3,8 +3,8 @@ from cuentas import generar_datos_ficticios
 from scrapping import votar_cupon
 
 # --- Parámetros de generación ---
-cantidad_cuentas = 5  # Número de cuentas a generar
-local = 6             # Posición de la tarjeta
+cantidad_cuentas = 10  # Número de cuentas a generar
+local = 16             # Posición de la tarjeta
 estrellas = 7         # Cantidad de estrellas a votar
 cod = "the1one"       # Código a validar
 

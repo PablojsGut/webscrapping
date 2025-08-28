@@ -1,0 +1,45 @@
+[
+    {
+        "fecha": "2025-08-27 21:13:34",
+        "local_id": 1,
+        "local_nombre": "Hamburguesas Simo",
+        "estrellas": 1,
+        "codigo": "the1one",
+        "cuentas": [
+            {
+                "correo": "venceslas.camara236@gmail.com",
+                "password": "B2Yi9jM%7"
+            }
+        ]
+    },
+    {
+        "fecha": "2025-08-27 21:14:35",
+        "local_id": 17,
+        "local_nombre": "Smash Garden",
+        "estrellas": 1,
+        "codigo": "the1one",
+        "cuentas": [
+            {
+                "correo": "venceslas.camara236@gmail.com",
+                "password": "B2Yi9jM%7"
+            }
+        ]
+    },
+    {
+        "fecha": "2025-08-27 21:19:07",
+        "local_id": 1,
+        "local_nombre": "Hamburguesas Simo",
+        "estrellas": 7,
+        "codigo": "the1one",
+        "cuentas": [
+            {
+                "correo": "benita.calvet946@umayor.cl",
+                "password": "5fc!V9Gdekl"
+            },
+            {
+                "correo": "silvestre.jaume796@yahoo.com",
+                "password": "#zN^!&iqVDAO"
+            }
+        ]
+    }
+]

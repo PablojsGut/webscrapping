@@ -66,4 +66,5 @@ def votar_cupon(mail, psw, local, estrellas, cod):
             print("No se detectó QR")
 
     finally:
+        time.sleep(5)
         driver.quit()
